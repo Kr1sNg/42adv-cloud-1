@@ -1,0 +1,9 @@
+---
+- name: Delete Ansible lab
+  hosts: local
+  tasks:
+    - name: Delete directory and its contents
+      ansible.builtin.file:
+        path: /tmp/ansible-lab
+        state: absent
+        

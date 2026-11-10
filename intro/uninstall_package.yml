@@ -1,0 +1,10 @@
+---
+- name: Remove a package
+  hosts: local
+  become: true
+  tasks:
+    - name: Uninstall curl
+      ansible.builtin.apt:
+        name: curl
+        state: absent
+        
