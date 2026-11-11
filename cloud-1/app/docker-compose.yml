@@ -1,77 +1,116 @@
+name: cloud1
+
 services:
   mariadb:
-    image: mariadb:lts
+    image: mariadb:11.4
     container_name: mariadb
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
       - database:/var/lib/mysql
     networks:
-      - cloud-1-net
+      - backend
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   wordpress:
-    image: wordpress:7.1.4-php8.2-fpm-alpine
+    image: wordpress:6.8-php8.3-fpm-alpine
     container_name: wordpress
     restart: unless-stopped
-    env_file:
-      - .env
-    depends_on:
-      - mariadb
+    environment: &wp_db_env
+      WORDPRESS_DB_HOST: ${DB_HOST}:${DB_PORT}
+      WORDPRESS_DB_NAME: ${DB_NAME}
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - web:/var/www/html
+      - wp_data:/var/www/html
+    depends_on:
+      mariadb:
+        condition: service_healthy
     networks:
-      - cloud-1-net
+      - frontend
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /var/www/html/wp-config.php"]
+      interval: 5s
+      retries: 20
+
+  wpcli:
+    image: wordpress:cli-php8.3
+    container_name: wpcli
+    restart: "no"
+    environment:
+      <<: *wp_db_env
+      DOMAIN_NAME: ${DOMAIN_NAME}
+      WP_TITLE: ${WP_TITLE}
+      WP_SUPER_USER: ${WP_SUPER_USER}
+      WP_SUPER_PASSWORD: ${WP_SUPER_PASSWORD}
+      WP_SUPER_EMAIL: ${WP_SUPER_EMAIL}
+      WP_USER: ${WP_USER}
+      WP_USER_PASSWORD: ${WP_USER_PASSWORD}
+      WP_USER_EMAIL: ${WP_USER_EMAIL}
+    volumes:
+      - wp_data:/var/www/html
+      - ./wordpress/wp-setup.sh:/usr/local/bin/wp-setup.sh:ro
+    networks:
+      - backend
+    depends_on:
+      wordpress:
+        condition: service_healthy
+    command: ["sh", "/usr/local/bin/wp-setup.sh"]
 
   phpmyadmin:
     image: phpmyadmin:5.2.3-fpm-alpine
     container_name: phpmyadmin
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      PMA_HOST: ${DB_HOST}
+      PMA_PORT: ${DB_PORT}
+      PMA_ABSOLUTE_URI: https://${DOMAIN_NAME}/phpmyadmin/
     volumes:
-      - phpmyadmin_files:/var/www/html
-    depends_on:
-      - mariadb
+      - phpma:/var/www/html
     networks:
-      - cloud-1-net
-
-  nginx:
-    build:
-      context: /nginx/.
-      args:
-        - LOGIN=${LOGIN}
-        - DOMAIN_NAME=${DOMAIN_NAME}
-    image: nginx:1.0
-    container_name: nginx
+      - frontend
+      - backend
     depends_on:
-      - wordpress
-      - mariadb
+      mariadb:
+        condition: service_healthy
+    
+  nginx:
+    image: nginx:1.28-alpine
+    container_name: nginx
+    environment:
+      DOMAIN_NAME: ${DOMAIN_NAME}
     ports:
+      - "80:80"
       - "443:443"
     volumes:
-      - web:/var/www/html
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./certs:/etc/nginx/certs:ro
+      - wp_data:/var/www/html:ro
+      - phpma_data:/var/www/phpmyadmin:ro
     networks:
-      - cloud-1-net
+      - frontend
+    depends_on:
+      wordpress:
+        condition: service_healthy
+      phpmyadmin:
+        condition: service_started
 
 networks:
-  cloud-1-net:
-    driver: bridge
-    name: cloud-1-net
+  frontend:
+  backend:
+    internal: true
 
 volumes:
-  web:
-    name: web
-    driver: local
-    driver_opts:
-      type: 'none'
-      o: 'bind'
-      device: /home/${HOSTNAME}/cloud-1/data/web
-
   database:
-    name: database
-    driver: local
-    driver_opts:
-      type: 'none'
-      o: 'bind'
-      device: /home/${HOST_NAME}/cloud-1/data/database
+  wp_data:
+  phpma_data:

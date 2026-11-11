@@ -1,5 +1,57 @@
 ---
-# docker compose -f srcs/docker-compose.yml down --volumes
-- name: Clean docker volumes
-  community.docker.docker_compose_v2:
-    - down --volumes
+- name: Clean Cloud-1 deployment
+  hosts: cloud
+  become: true
+
+  # vars:
+  #   keep_data: false
+  #   cloud1_containers: [nginx, wpcli, phpmyadmin, wordpress, mariadb]
+  #   cloud1_volumes: [cloud1_db_data, cloud1_wp_data, cloud1_pma_data]
+  #   cloud1_networks: [cloud1_frontend, cloud1_backend]
+
+  tasks:
+    # - name: Check whether the app is deployed
+    #   ansible.builtin.stat:
+    #     path: "{{ app_dir }}/docker-compose.yml"
+    #   register: compose_file
+    
+    # - name: Stop and remove the stack (containers, networks, images, volumes)
+    #   community.docker.docker_compose_v2:
+    #     project_src: "{{ app_dir }}"
+    #     state: absent
+    #     remove_orphans: true
+    #     remove_images: all
+    #     remove_volumes: "{{ not (keep_data | bool) }}"
+    #   when: compose_file.stat.exists
+
+    # - name: Remove leftover containers
+    #   community.docker.docker_container:
+    #     name: "{{ item }}"
+    #     state: absent
+    #     force_kill: true
+    #   loop: "{{ cloud1_containers }}"
+    
+    # - name: Remove leftover networks
+    #   community.docker.docker_network:
+    #     name: "{{ item }}"
+    #     state: absent
+    #   loop: "{{ cloud1_networks }}"
+
+    # - name: Remove volumes (site data)
+    #   community.docker.docker_volume:
+    #     name: "{{ item }}"
+    #     state: absent
+    #   loop: "{{ cloud1_volumes }}"
+    #   when: not (keep_data | bool)
+
+    # - name: Remove unused images and build cache
+    #   community.docker.docker_prune:
+    #     images: true
+    #     images_filters:
+    #       dangling: false       # all unused images, not just untagged ones
+    #     builder_cache: true
+    
+    - name: Remove app directory (compose file, .env, certs)
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: absent

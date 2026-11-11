@@ -13,15 +13,15 @@
       tags:
         - files
         - always
-    - role: mariadb
-      tags:
-        - mariadb
-    - role: wordpress
-      tags:
-        - wordpress
-    - role: phpmyadmin
-      tags:
-        - phpmyadmin
-    - role: nginx
-      tags:
-        - nginx
+    # - role: mariadb
+    #   tags:
+    #     - mariadb
+    # - role: wordpress
+    #   tags:
+    #     - wordpress
+    # - role: phpmyadmin
+    #   tags:
+    #     - phpmyadmin
+    # - role: nginx
+    #   tags:
+    #     - nginx

@@ -1,0 +1,52 @@
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN_NAME} www.${DOMAIN_NAME};
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name ${DOMAIN_NAME} www.${DOMAIN_NAME};
+
+    ssl_certificate     /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    client_max_body_size 64M;   # media uploads
+    root  /var/www/html;
+    index index.php;
+
+    # ---- phpMyAdmin at /phpmyadmin/ ----
+    location = /phpmyadmin { return 301 /phpmyadmin/; }
+
+    location ~ ^/phpmyadmin/(.+\.php)$ {          # must come before the WordPress PHP block
+        fastcgi_pass  phpmyadmin:9000;
+        include       fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /var/www/html/$1;   # path inside the phpmyadmin container
+        fastcgi_param HTTPS on;
+    }
+
+    location /phpmyadmin/ {
+        alias /var/www/phpmyadmin/;               # static files (css/js) served by nginx
+        index index.php;
+        try_files $uri $uri/ =404;
+    }
+
+    # ---- WordPress ----
+    location / {
+        try_files $uri $uri/ /index.php?$args;    # pretty permalinks
+    }
+
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_pass  wordpress:9000;
+        include       fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param HTTPS on;
+    }
+
+    location ~ /\.(?!well-known) { deny all; }    # hide .htaccess, .git, etc.
+}
