@@ -1,6 +1,7 @@
 ---
 - name: Project Cloud-1
   hosts: cloud
+  vars_files: vault.yml
   become: true
 
   roles:

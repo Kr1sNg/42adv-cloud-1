@@ -7,7 +7,8 @@
   hosts: cloud
   become: true
   tasks:
-  - name: Remove folder
-    ansible.builtin.file:
-      path: /home/{{ ansible_user }}/cloud-1
-      state: absent
+
+    - name: Remove folder
+      ansible.builtin.file:
+        path: /home/{{ ansible_user }}/cloud-1
+        state: absent
