@@ -6,9 +6,10 @@
       ansible.builtin.file:
         path: /tmp/ansible-lab
         state: directory
-        mode: '0755'
+        mode: "0755"
 
     - name: Create a text file
       ansible.builtin.copy:
         content: "Hello from Ansible!\n"
-        dest: /tmp/ansible-lab/hello.txt  
+        dest: /tmp/ansible-lab/hello.txt
+        mode: "0644"

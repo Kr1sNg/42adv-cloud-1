@@ -1,0 +1,77 @@
+services:
+  mariadb:
+    image: mariadb:lts
+    container_name: mariadb
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - database:/var/lib/mysql
+    networks:
+      - cloud-1-net
+
+  wordpress:
+    image: wordpress:7.1.4-php8.2-fpm-alpine
+    container_name: wordpress
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - mariadb
+    volumes:
+      - web:/var/www/html
+    networks:
+      - cloud-1-net
+
+  phpmyadmin:
+    image: phpmyadmin:5.2.3-fpm-alpine
+    container_name: phpmyadmin
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - phpmyadmin_files:/var/www/html
+    depends_on:
+      - mariadb
+    networks:
+      - cloud-1-net
+
+  nginx:
+    build:
+      context: /nginx/.
+      args:
+        - LOGIN=${LOGIN}
+        - DOMAIN_NAME=${DOMAIN_NAME}
+    image: nginx:1.0
+    container_name: nginx
+    depends_on:
+      - wordpress
+      - mariadb
+    ports:
+      - "443:443"
+    volumes:
+      - web:/var/www/html
+    networks:
+      - cloud-1-net
+
+networks:
+  cloud-1-net:
+    driver: bridge
+    name: cloud-1-net
+
+volumes:
+  web:
+    name: web
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: /home/$HOSTNAME/cloud-1/data/web
+
+  database:
+    name: database
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: /home/$HOST_NAME/cloud-1/data/database

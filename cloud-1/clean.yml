@@ -1,0 +1,5 @@
+---
+# docker compose -f srcs/docker-compose.yml down --volumes
+- name: Clean docker volumes
+  community.docker.docker_compose_v2:
+    - down --volumes

@@ -1,5 +1,24 @@
 # Ansible
 
+## Create environment for Ansible
+
+mkdir -p ~/ansible
+cd ~/ansible
+
+python3 -m venv .venv
+source .venv/bin/activate
+
+python -m pip install --upgrade pip
+python -m pip install ansible-dev-tools
+
+Then using in VS code:
+
+```bash
+source ~/.ansible/.venv/bin/activate
+
+deactivate
+```
+
 ## Vocab
 
 - `control node`: the machine running Ansible (it's us)

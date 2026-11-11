@@ -1,0 +1,23 @@
+# Ignore Git
+.git
+.gitignore
+
+# Ignore Docker-related stuff
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Ignore build outputs or caches
+**/__pycache__/
+**/*.pyc
+*.o
+*.log
+*.tmp
+
+# Ignore local system files
+.DS_Store
+Thumbs.db
+
+# Ignore secrets (if any)
+# .env
+# secrets/
