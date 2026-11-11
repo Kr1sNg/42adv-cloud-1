@@ -66,7 +66,7 @@ volumes:
     driver_opts:
       type: 'none'
       o: 'bind'
-      device: /home/$HOSTNAME/cloud-1/data/web
+      device: /home/${HOSTNAME}/cloud-1/data/web
 
   database:
     name: database
@@ -74,4 +74,4 @@ volumes:
     driver_opts:
       type: 'none'
       o: 'bind'
-      device: /home/$HOST_NAME/cloud-1/data/database
+      device: /home/${HOST_NAME}/cloud-1/data/database
