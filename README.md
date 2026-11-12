@@ -429,7 +429,6 @@ ansible-playbook -i inventory.ini playbook.yml --ask-vault-pass   # second run: 
 - [Docker and UFW](https://docs.docker.com/engine/network/packet-filtering-firewalls/#docker-and-ufw)
 - [Official WordPress image](https://hub.docker.com/_/wordpress), [MariaDB image](https://hub.docker.com/_/mariadb), [phpMyAdmin image](https://hub.docker.com/_/phpmyadmin), [nginx image](https://hub.docker.com/_/nginx)
 - [WP-CLI commands](https://developer.wordpress.org/cli/commands/)
-- [`.gitignore` for WordPress](https://github.com/github/gitignore/blob/main/WordPress.gitignore)
 
 ### AI usage
 
