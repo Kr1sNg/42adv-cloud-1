@@ -1,27 +1,28 @@
 ---
 - name: Project Cloud-1
   hosts: cloud
-  vars_files: vault.yml
   become: true
 
   roles:
+    - role: firewall
+      tags:
+        - firewall
     - role: docker
       tags:
         - docker
-        - always
     - role: files
       tags:
         - files
         - always
-    # - role: mariadb
-    #   tags:
-    #     - mariadb
-    # - role: wordpress
-    #   tags:
-    #     - wordpress
-    # - role: phpmyadmin
-    #   tags:
-    #     - phpmyadmin
-    # - role: nginx
-    #   tags:
-    #     - nginx
+    - role: mariadb
+      tags:
+        - mariadb
+    - role: wordpress
+      tags:
+        - wordpress
+    - role: phpmyadmin
+      tags:
+        - phpmyadmin
+    - role: nginx
+      tags:
+        - nginx

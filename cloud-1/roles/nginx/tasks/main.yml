@@ -1,8 +1,27 @@
 ---
+- name: Create certs directory
+  ansible.builtin.file:
+    path: "{{ app_dir }}/certs"
+    state: directory
+    mode: "0700"
+
+- name: Generate self-signed TLS certificate (only if missing)
+  ansible.builtin.command:
+    cmd: >
+      openssl req -x509 -nodes -newkey rsa:2048 -days 365
+      -keyout {{ app_dir }}/certs/privkey.pem
+      -out {{ app_dir }}/certs/fullchain.pem
+      -subj "/C=FR/ST=OCC/L=Perpignan/O=42/OU=42Perpignan/CN={{ DOMAIN_NAME }}/UID={{ ansible_user }}"
+      -addext "subjectAltName=DNS:{{ DOMAIN_NAME }},DNS:www.{{ DOMAIN_NAME }}"
+    creates: "{{ app_dir }}/certs/fullchain.pem"
+  notify: Handler Restart nginx
+
 - name: Deploy NGINX
   community.docker.docker_compose_v2:
-    project_src: /home/{{ ansible_user }}/cloud-1
+    project_src: "{{ app_dir }}"
     services:
       - nginx
     state: present
     dependencies: true
+    wait: true
+    wait_timeout: 60

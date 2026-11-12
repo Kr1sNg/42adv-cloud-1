@@ -1,8 +1,8 @@
 ---
 - name: Deploy MariaDB
   community.docker.docker_compose_v2:
-    project_src: "/home/{{ ansible_user }}/cloud-1"
+    project_src: "{{ app_dir }}"
     services:
       - mariadb
     state: present
-    dependencies: true
+    wait: true

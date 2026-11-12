@@ -15,6 +15,7 @@
     group: "{{ ansible_user }}"
     mode: "0644"
     directory_mode: "0755"
+  notify: Handler Restart nginx
 
 - name: Generate dotenv file from Vault
   ansible.builtin.template:

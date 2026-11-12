@@ -1,0 +1,11 @@
+# A handler is a task that only runs when another task notifies it,
+# and only if that task reported changed.
+# It runs once, at the end of the play, even if several tasks notified it.
+
+---
+- name: Handler Restart nginx
+  community.docker.docker_compose_v2:
+    project_src: "{{ app_dir }}"
+    services:
+      - nginx
+    state: restarted

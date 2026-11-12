@@ -3,55 +3,68 @@
   hosts: cloud
   become: true
 
-  # vars:
-  #   keep_data: false
-  #   cloud1_containers: [nginx, wpcli, phpmyadmin, wordpress, mariadb]
-  #   cloud1_volumes: [cloud1_db_data, cloud1_wp_data, cloud1_pma_data]
-  #   cloud1_networks: [cloud1_frontend, cloud1_backend]
+  vars:
+    keep_data: false
+    cloud1_containers: [nginx, phpmyadmin, wordpress, mariadb]
+    cloud1_volumes: [cloud1_db_data, cloud1_wp_data, cloud1_pma_data]
+    cloud1_networks: [cloud1_frontend, cloud1_backend]
 
   tasks:
-    # - name: Check whether the app is deployed
-    #   ansible.builtin.stat:
-    #     path: "{{ app_dir }}/docker-compose.yml"
-    #   register: compose_file
-    
-    # - name: Stop and remove the stack (containers, networks, images, volumes)
-    #   community.docker.docker_compose_v2:
-    #     project_src: "{{ app_dir }}"
-    #     state: absent
-    #     remove_orphans: true
-    #     remove_images: all
-    #     remove_volumes: "{{ not (keep_data | bool) }}"
-    #   when: compose_file.stat.exists
+    - name: Check whether the app is deployed
+      ansible.builtin.stat:
+        path: "{{ app_dir }}/docker-compose.yml"
+      register: compose_file
 
-    # - name: Remove leftover containers
-    #   community.docker.docker_container:
-    #     name: "{{ item }}"
-    #     state: absent
-    #     force_kill: true
-    #   loop: "{{ cloud1_containers }}"
-    
-    # - name: Remove leftover networks
-    #   community.docker.docker_network:
-    #     name: "{{ item }}"
-    #     state: absent
-    #   loop: "{{ cloud1_networks }}"
+    - name: Stop and remove the stack (containers, networks, images, volumes)
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dir }}"
+        state: absent
+        remove_orphans: true
+        remove_images: all
+        remove_volumes: "{{ not (keep_data | bool) }}"
+      when: compose_file.stat.exists
 
-    # - name: Remove volumes (site data)
-    #   community.docker.docker_volume:
-    #     name: "{{ item }}"
-    #     state: absent
-    #   loop: "{{ cloud1_volumes }}"
-    #   when: not (keep_data | bool)
+    - name: Remove leftover containers
+      community.docker.docker_container:
+        name: "{{ item }}"
+        state: absent
+        force_kill: true
+      loop: "{{ cloud1_containers }}"
 
-    # - name: Remove unused images and build cache
-    #   community.docker.docker_prune:
-    #     images: true
-    #     images_filters:
-    #       dangling: false       # all unused images, not just untagged ones
-    #     builder_cache: true
-    
+    - name: Remove leftover one-off containers (e.g. interrupted wp-cli runs)
+      community.docker.docker_prune:
+        containers: true
+        containers_filters:
+          label: com.docker.compose.project=cloud1
+
+    - name: Remove leftover networks
+      community.docker.docker_network:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ cloud1_networks }}"
+
+    - name: Remove volumes (site data)
+      community.docker.docker_volume:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ cloud1_volumes }}"
+      when: not (keep_data | bool)
+
+    - name: Remove unused images and build cache
+      community.docker.docker_prune:
+        images: true
+        images_filters:
+          dangling: false       # all unused images, not just untagged ones
+        builder_cache: true
+
     - name: Remove app directory (compose file, .env, certs)
       ansible.builtin.file:
         path: "{{ app_dir }}"
         state: absent
+
+    - name: Reset UFW to defaults (only with --tags firewall)
+      community.general.ufw:
+        state: reset
+      tags:
+        - never
+        - firewall

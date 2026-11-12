@@ -11,7 +11,7 @@ services:
       MARIADB_PASSWORD: ${DB_PASSWORD}
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
-      - database:/var/lib/mysql
+      - mariadb_volume:/var/lib/mysql
     networks:
       - backend
     healthcheck:
@@ -31,7 +31,7 @@ services:
       WORDPRESS_DB_USER: ${DB_USER}
       WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - wp_data:/var/www/html
+      - wordpress_volume:/var/www/html
     depends_on:
       mariadb:
         condition: service_healthy
@@ -45,7 +45,8 @@ services:
 
   wpcli:
     image: wordpress:cli-php8.3
-    container_name: wpcli
+    profiles:
+      - setup
     restart: "no"
     environment:
       <<: *wp_db_env
@@ -58,7 +59,7 @@ services:
       WP_USER_PASSWORD: ${WP_USER_PASSWORD}
       WP_USER_EMAIL: ${WP_USER_EMAIL}
     volumes:
-      - wp_data:/var/www/html
+      - wordpress_volume:/var/www/html
       - ./wordpress/wp-setup.sh:/usr/local/bin/wp-setup.sh:ro
     networks:
       - backend
@@ -76,7 +77,7 @@ services:
       PMA_PORT: ${DB_PORT}
       PMA_ABSOLUTE_URI: https://${DOMAIN_NAME}/phpmyadmin/
     volumes:
-      - phpma:/var/www/html
+      - phpmyadmin_files:/var/www/html
     networks:
       - frontend
       - backend
@@ -95,8 +96,8 @@ services:
     volumes:
       - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./certs:/etc/nginx/certs:ro
-      - wp_data:/var/www/html:ro
-      - phpma_data:/var/www/phpmyadmin:ro
+      - wordpress_volume:/var/www/html:ro
+      - phpmyadmin_files:/var/www/phpmyadmin:ro
     networks:
       - frontend
     depends_on:
@@ -111,6 +112,6 @@ networks:
     internal: true
 
 volumes:
-  database:
-  wp_data:
-  phpma_data:
+  mariadb_volume:
+  wordpress_volume:
+  phpmyadmin_files:
