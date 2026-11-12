@@ -29,6 +29,11 @@ Ansible is agentless: it does not normally require an agent to be installed on m
 
 ### 2.1. Create a Python virtual environment
 
+Using:
+```bash
+source ~/.ansible/.venv/bin/activate
+```
+
 On Debian / Ubuntu:
 
 ```bash
@@ -405,7 +410,144 @@ The `state` parameter describes the desired state of a resource.
 
 ---
 
-## 7. Useful references
+## 7. Ansible Vault – Manage sensitive information
+
+**Ansible Vault** allows you to encrypt sensitive information such as passwords, API tokens, SSH credentials, and database credentials.
+
+It protects sensitive variables while allowing you to store encrypted files in a Git repository.
+
+### 7.1. Useful Ansible Vault commands
+
+| Command | Purpose |
+|---|---|
+| `ansible-vault create secrets.yml` | Create a new encrypted file. |
+| `ansible-vault edit secrets.yml` | Edit an encrypted file. |
+| `ansible-vault view secrets.yml` | View decrypted content without modifying the file. |
+| `ansible-vault encrypt secrets.yml` | Encrypt an existing file. |
+| `ansible-vault decrypt secrets.yml` | Decrypt an encrypted file. |
+| `ansible-vault rekey secrets.yml` | Change the Vault password. |
+
+### 7.2. Create an encrypted secrets file
+
+Create a new encrypted file:
+
+```bash
+ansible-vault create secrets.yml
+```
+
+Ansible will ask you to create a Vault password.
+
+Example content:
+
+```yaml
+---
+db_username: admin
+db_password: my_secure_password
+domain_name: login.42.fr
+```
+
+The file is encrypted when you save and exit the editor.
+
+### 7.3. Use Vault variables in a playbook
+
+Example project structure:
+
+```text
+ansible/
+├── inventory.ini
+├── secrets.yml
+└── configure_server.yml
+```
+
+In `configure_server.yml`:
+
+```yaml
+---
+- name: Configure server
+  hosts: local
+  vars_files:
+    - secrets.yml
+
+  tasks:
+    - name: Display database username
+      ansible.builtin.debug:
+        msg: "Database username: {{ db_username }}"
+```
+
+Run the playbook:
+
+```bash
+ansible-playbook -i inventory.ini configure_server.yml --ask-vault-pass
+```
+
+Ansible asks for the Vault password to decrypt `secrets.yml` before executing the playbook.
+
+### 7.4. Use a Vault password file
+
+Instead of entering the password every time, you can use a password file:
+
+```bash
+ansible-playbook -i inventory.ini configure_server.yml \
+  --vault-password-file ~/.ansible/vault_pass
+```
+
+**Security warning:**
+- Never commit the Vault password file to Git.
+- Restrict its permissions:
+
+```bash
+chmod 600 ~/.ansible/vault_pass
+```
+
+- For CI/CD pipelines, store the Vault password in a protected secret store rather than in your repository.
+
+### 7.5. Important security practices
+
+- Encrypt sensitive variables with Ansible Vault.
+- Never commit plaintext secrets to Git.
+- Add generated `.env` files and Vault password files to `.gitignore`.
+- Use `no_log: true` on tasks that might expose sensitive values.
+- Keep separate secrets for development, testing, and production environments.
+
+**Important distinction:**
+
+| Component | Purpose |
+|---|---|
+| Ansible Vault | Encrypt sensitive information at rest. |
+| `secrets.yml` | Stores encrypted variables. |
+| `.env.j2` | Template used by Ansible to generate an environment file. |
+| `.env` | Generated file containing the actual application environment variables. |
+| Docker Compose | Uses environment variables to configure containers. |
+
+A common deployment workflow is:
+
+```text
+Encrypted secrets.yml
+        |
+        v
+   Ansible Vault
+        |
+        v
+  Ansible Playbook
+        |
+        v
+ Render .env.j2 template
+        |
+        v
+  Generate .env (mode 0600)
+        |
+        v
+   Docker Compose
+        |
+        v
+    Containers
+```
+
+This allows you to keep encrypted secrets in Git while generating the actual `.env` file securely on the target server.
+
+---
+
+## 8. Useful references
 
 - [Official Ansible documentation](https://docs.ansible.com/)
 - [Ansible getting started](https://docs.ansible.com/ansible/latest/getting_started/index.html)
