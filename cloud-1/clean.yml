@@ -6,7 +6,7 @@
   vars:
     keep_data: false
     cloud1_containers: [nginx, phpmyadmin, wordpress, mariadb]
-    cloud1_volumes: [cloud1_db_data, cloud1_wp_data, cloud1_pma_data]
+    cloud1_volumes: [cloud1_mariadb_volume, cloud1_wordpress_volume, cloud1_phpmyadmin_files]
     cloud1_networks: [cloud1_frontend, cloud1_backend]
 
   tasks:

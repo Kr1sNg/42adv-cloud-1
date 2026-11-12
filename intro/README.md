@@ -1,7 +1,37 @@
 # Ansible
 
-## Create environment for Ansible
+## 1. Introduction
 
+**Ansible** is an open-source automation tool used to configure systems, deploy applications, and automate IT infrastructure.
+
+It allows you to manage multiple machines from a single machine using simple YAML files called **playbooks**.
+
+Ansible is agentless: it does not normally require an agent to be installed on managed Linux machines. It commonly connects through SSH and executes modules remotely.
+
+### Key concepts
+
+| Term | Description |
+|---|---|
+| **Control node** | The machine where Ansible is installed and executed. |
+| **Managed node** | A machine that Ansible manages or configures. |
+| **Inventory** | A list of managed nodes and their connection information. |
+| **Playbook** | A YAML file describing the automation to execute. |
+| **Play** | A set of tasks targeting a group of hosts. |
+| **Task** | A single automation step in a playbook. |
+| **Module** | A reusable unit of code that performs an operation, such as installing a package or creating a file. |
+| **Role** | A reusable way to organize playbooks, tasks, variables, templates, and handlers. |
+| **Handler** | A task that runs when notified by another task, usually when something changes. |
+| **Facts** | Information automatically collected about managed nodes, such as their operating system and IP addresses. |
+
+---
+
+## 2. Create an Ansible environment
+
+### 2.1. Create a Python virtual environment
+
+On Debian / Ubuntu:
+
+```bash
 mkdir -p ~/ansible
 cd ~/ansible
 
@@ -10,103 +40,173 @@ source .venv/bin/activate
 
 python -m pip install --upgrade pip
 python -m pip install ansible-dev-tools
+```
 
-Then using in VS code:
+Verify the installation:
 
 ```bash
-source ~/.ansible/.venv/bin/activate
+ansible --version
+ansible-playbook --version
+```
 
+### 2.2. Use Ansible with VS Code
+
+Open your Ansible project in VS Code.
+
+Activate the virtual environment in the integrated terminal:
+
+```bash
+source ~/ansible/.venv/bin/activate
+```
+
+To leave the virtual environment:
+
+```bash
 deactivate
 ```
 
-## Vocab
+**Important:** Configure VS Code to use the same Python interpreter:
 
-- `control node`: the machine running Ansible (it's us)
-
-- `managed nodes`: targeted machines which are going to be configured by Ansible
-
-- All different types of platforms have different means of being connected
-
-```yaml
-# Windows
-hosts: all_windows_machines
-connection: winrm
-
-# Linux
-hosts: all_linux_machines
-connection: ssh
-
-# network devices
-hosts: all_network_devices
-connection: network_cli
-
-# cloud
-hosts: all_cloud_environments
-connection: local
+```text
+~/ansible/.venv/bin/python
 ```
- 
-- `name`: 
 
+You can select it using `Python: Select Interpreter` in the VS Code Command Palette.
 
-## Azure
+---
 
-azureuser
+## 3. Connection types and managed nodes
 
-## Ansible beginner exercises
-Level 1 – Fundamentals
-Beginner
+Different platforms use different connection methods.
 
-1. Check whether your server is reachable
+| Platform | Connection | Description |
+|---|---|---|
+| Linux | `ssh` | Connect through SSH. |
+| Windows | `winrm` | Connect through Windows Remote Management. |
+| Network devices | `network_cli` | Connect through a network CLI, commonly SSH. |
+| Local machine | `local` | Execute tasks directly on the control node. |
+| Cloud resources | Usually cloud-specific modules | Manage cloud resources through provider APIs. |
 
-Learn: Inventory, hosts, modules, ad-hoc commands.
+### Example inventory
 
-Create inventory.ini:
+```ini
+[linux_servers]
+server1 ansible_host=192.168.1.10 ansible_user=ubuntu
+
+[windows_servers]
+windows1 ansible_host=192.168.1.20 ansible_connection=winrm
+
 [local]
 localhost ansible_connection=local
+```
 
+For cloud platforms such as Azure, Ansible can use cloud-specific collections and modules to manage resources through their APIs.
+
+### Azure SSH connection example
+
+For an Azure Linux virtual machine:
+
+```ini
+[azure_servers]
+my_vm ansible_host=20.10.10.10 ansible_user=azureuser
+```
+
+`azureuser` is an example of an SSH username. The actual username depends on the one configured when the VM was created.
+
+---
+
+## 4. Ansible beginner exercises
+
+These exercises use `localhost` so you can learn Ansible without needing a remote server.
+
+### Level 1 – Fundamentals
+
+#### Exercise 1: Check whether your server is reachable
+
+**Learn:** Inventory, hosts, modules, and ad-hoc commands.
+
+Create `inventory.ini`:
+
+```ini
+[local]
+localhost ansible_connection=local
+```
 
 Execute:
-ansible all -i inventory.ini -m ping
 
+```bash
+ansible all -i inventory.ini -m ansible.builtin.ping
+```
 
-Expected result: SUCCESS and "ping": "pong".
+Expected result:
 
-Concept: Ansible connects to hosts and executes modules.
+```json
+localhost | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
+```
 
-2. Get system information
+**Concept:** Ansible connects to the target host and executes a module.
 
-Learn: Facts gathering.
-ansible all -i inventory.ini -m setup
+Note: The Ansible ping module tests whether Ansible can communicate with the host. It does not send an ICMP ping packet.
 
+#### Exercise 2: Get system information
 
-Try filtering information:
-ansible all -i inventory.ini -m setup \
+**Learn:** Facts gathering.
+
+Execute:
+
+```bash
+ansible all -i inventory.ini -m ansible.builtin.setup
+```
+
+This collects information about the managed machine.
+
+Try filtering the information:
+
+```bash
+ansible all -i inventory.ini -m ansible.builtin.setup \
   -a 'filter=ansible_distribution*'
-
+```
 
 Expected: Linux distribution and version information.
 
-3. Check disk space and memory
+**Concept:** Facts are variables automatically collected by Ansible. They can be used in playbooks to make decisions based on the target machine.
 
-Learn: Command and shell modules.
-ansible all -i inventory.ini -m command \
+#### Exercise 3: Check disk space and memory
+
+**Learn:** Command module.
+
+Check disk space:
+
+```bash
+ansible all -i inventory.ini -m ansible.builtin.command \
   -a "df -h"
+```
 
+Check memory:
 
-Then:
-ansible all -i inventory.ini -m command \
+```bash
+ansible all -i inventory.ini -m ansible.builtin.command \
   -a "free -h"
+```
 
+Compare the output with running the same commands directly in your terminal.
 
-Compare the output with running commands directly in your terminal.
+**Concept:** The `command` module executes a command on the target machine without using a shell.
 
-Level 2 – Basic automation with modules
-Beginner
-4. Create a directory and a file
+---
 
-Learn: file and copy modules.
+### Level 2 – Basic automation with modules
 
-Create create_file.yml:
+#### Exercise 4: Create a directory and a file
+
+**Learn:** `file` and `copy` modules.
+
+Create `create_file.yml`:
+
+```yaml
 ---
 - name: Create my first files
   hosts: local
@@ -121,23 +221,31 @@ Create create_file.yml:
       ansible.builtin.copy:
         content: "Hello from Ansible!\n"
         dest: /tmp/ansible-lab/hello.txt
-
+```
 
 Run:
-ansible-playbook -i inventory.ini create_file.yml
 
+```bash
+ansible-playbook -i inventory.ini create_file.yml
+```
 
 Verify:
+
+```bash
 cat /tmp/ansible-lab/hello.txt
+```
 
+**Challenge:** Run the playbook twice. Does Ansible make changes the second time?
 
-Challenge: Run the playbook twice. Does Ansible make changes the second time?
+**Concept:** Ansible modules are generally designed to be idempotent. This means that running the same playbook multiple times should not make unnecessary changes when the desired state has already been achieved.
 
-5. Install a package
+#### Exercise 5: Install a package
 
-Learn: Package management and privilege escalation.
+**Learn:** Package management and privilege escalation.
 
-Create install_package.yml:
+Create `install_package.yml`:
+
+```yaml
 ---
 - name: Install a package
   hosts: local
@@ -148,34 +256,35 @@ Create install_package.yml:
         name: curl
         state: present
         update_cache: true
-
+```
 
 Run:
-ansible-playbook -i inventory.ini install_package.yml --ask-become-pass
 
+```bash
+ansible-playbook -i inventory.ini install_package.yml -K
+```
 
 Verify:
+
+```bash
 curl --version
+```
 
+**Challenge:** Change `curl` to `git` and install it.
 
-Challenge: Change curl to git and install it.
+**Concept:** `become: true` enables privilege escalation, usually through `sudo`, so Ansible can perform administrative operations.
 
-3. Understand these Ansible options
-Option	Meaning
--u username	SSH/Linux user to connect as
--b	Enable privilege escalation (become)
--K	Ask for become password
---ask-pass	Ask for SSH connection password
+---
 
-Important distinction:
-- --ask-pass = password to connect to a remote machine.
-- --ask-become-pass = password to obtain elevated privileges using sudo.
-For your current exercise, use:
-ansible-playbook -i inventory.ini install_package.yml -K
+### Level 3 – Delete resources and manage packages
 
-1. Delete a directory and all its files
-Create delete_file.yml:
+#### Exercise 6: Delete a directory and all its files
 
+**Learn:** File deletion with the `file` module.
+
+Create `delete_file.yml`:
+
+```yaml
 ---
 - name: Delete my Ansible lab
   hosts: local
@@ -184,31 +293,40 @@ Create delete_file.yml:
       ansible.builtin.file:
         path: /tmp/ansible-lab
         state: absent
-
-
+```
 
 Run:
-ansible-playbook -i inventory.ini delete_file.yml
 
+```bash
+ansible-playbook -i inventory.ini delete_file.yml
+```
 
 Verify:
-ls -la /tmp/ansible-lab
 
+```bash
+ls -la /tmp/ansible-lab
+```
 
 The directory and everything inside it will be deleted recursively.
 
-Important: state: absent works for both files and directories.
+**Important:** `state: absent` works for both files and directories.
 
 For example, to delete only one file:
+
+```yaml
 - name: Delete hello.txt
   ansible.builtin.file:
     path: /tmp/ansible-lab/hello.txt
     state: absent
+```
 
+#### Exercise 7: Uninstall a package
 
-2. Uninstall a package
-Create remove_package.yml:
+**Learn:** Package removal with the `apt` module.
 
+Create `remove_package.yml`:
+
+```yaml
 ---
 - name: Remove a package
   hosts: local
@@ -218,29 +336,79 @@ Create remove_package.yml:
       ansible.builtin.apt:
         name: curl
         state: absent
-
-
+```
 
 Run:
-ansible-playbook -i inventory.ini remove_package.yml --ask-become-pass
 
+```bash
+ansible-playbook -i inventory.ini remove_package.yml -K
+```
 
 Verify:
-dpkg -l curl
 
+```bash
+dpkg -s curl
+```
 
-state: absent uninstalls the package but keeps its configuration files where applicable.
+If the package has been removed, `dpkg` will report that the package is not installed.
 
-If you also want to remove package configuration files, use:
-state: purge
+**Concept:**
 
+- `state: absent`: Uninstalls the package but normally keeps its configuration files.
+- `state: purge`: Uninstalls the package and removes its configuration files where supported.
 
-3. Understand the different states
-Module	State	Meaning
-file	present	Ensure file exists
-file	directory	Ensure directory exists
-file	absent	Delete file/directory
-apt	present	Ensure package is installed
-apt	absent	Uninstall package
-apt	latest	Install/update to latest version
-apt	purge	Uninstall and purge configuration
+---
+
+## 5. Important Ansible command-line options
+
+| Option | Meaning |
+|---|---|
+| `-i` | Specify the inventory file. |
+| `-m` | Specify the module for an ad-hoc command. |
+| `-a` | Pass arguments to a module. |
+| `-u` | Specify the remote SSH/Linux username. |
+| `-b` | Enable privilege escalation (`become`). |
+| `-K` | Ask for the privilege escalation password. |
+| `--ask-pass` | Ask for the SSH connection password. |
+| `-v` | Display more execution details. |
+| `--check` | Perform a dry run where supported. |
+| `--diff` | Show file changes where supported. |
+
+### Important distinction: `--ask-pass` vs `-K`
+
+- `--ask-pass`: Password used to connect to a remote machine through SSH.
+- `-K` (`--ask-become-pass`): Password used to obtain elevated privileges through `sudo`.
+
+For the local package installation exercise, use:
+
+```bash
+ansible-playbook -i inventory.ini install_package.yml -K
+```
+
+---
+
+## 6. Understanding Ansible module states
+
+The `state` parameter describes the desired state of a resource.
+
+| Module | State | Meaning |
+|---|---|---|
+| `file` | `directory` | Ensure a directory exists. |
+| `file` | `touch` | Ensure a file exists, creating it if necessary. |
+| `file` | `absent` | Delete a file or directory. |
+| `apt` | `present` | Ensure a package is installed. |
+| `apt` | `absent` | Uninstall a package. |
+| `apt` | `latest` | Ensure the latest package version is installed. |
+| `apt` | `purge` | Uninstall a package and purge its configuration. |
+
+**Remember:** Ansible describes the desired state of your infrastructure, rather than simply listing commands to execute.
+
+---
+
+## 7. Useful references
+
+- [Official Ansible documentation](https://docs.ansible.com/)
+- [Ansible getting started](https://docs.ansible.com/ansible/latest/getting_started/index.html)
+- [Ansible module index](https://docs.ansible.com/ansible/latest/collections/index_module.html)
+- [Ansible Vault documentation](https://docs.ansible.com/ansible/latest/vault_guide/index.html)
+- [Ansible community collections](https://galaxy.ansible.com/)
